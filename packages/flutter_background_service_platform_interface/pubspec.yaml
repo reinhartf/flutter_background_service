@@ -1,6 +1,10 @@
+# The following line prevents the package from being accidentally published to
+# pub.dev using `pub publish`. This is preferred for private packages.
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
 name: flutter_background_service_platform_interface
 description: A platform interface for flutter background service.
-version: 5.1.2
+version: 5.1.2+1
 repository: https://github.com/ekasetiawans/flutter_background_service
 
 environment:

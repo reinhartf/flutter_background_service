@@ -155,6 +155,16 @@ class IOSServiceInstance extends ServiceInstance {
   }
 
   @override
+  Future<double?> beginBackgroundTask() {
+    return _channel.invokeMethod<double?>('beginBackgroundTask');
+  }
+  
+  @override
+  Future<void> endBackgroundTask() {
+    return _channel.invokeMethod<void>('endBackgroundTask');
+  }
+
+  @override
   Stream<Map<String, dynamic>?> on(String method) {
     return _controller.stream.transform(
       StreamTransformer.fromHandlers(

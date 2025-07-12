@@ -45,4 +45,10 @@ abstract class FlutterBackgroundServicePlatform extends PlatformInterface
 abstract class ServiceInstance implements Observable {
   /// Stop the service
   Future<void> stopSelf();
+
+  /// Begin background task
+  Future<double?> beginBackgroundTask();
+
+  /// End background task
+  Future<void> endBackgroundTask();
 }

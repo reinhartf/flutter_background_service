@@ -1,6 +1,10 @@
+# The following line prevents the package from being accidentally published to
+# pub.dev using `pub publish`. This is preferred for private packages.
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
 name: flutter_background_service_android
 description: A flutter plugin for executing dart code continously even application closed.
-version: 6.3.0
+version: 6.3.0+1
 repository: https://github.com/ekasetiawans/flutter_background_service
 
 environment:
@@ -11,10 +15,19 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_background_service_platform_interface: ^5.1.2
+  flutter_background_service_platform_interface:
+    git:
+      url: https://github.com/reinhartf/flutter_background_service
+      path: packages/flutter_background_service_platform_interface
+      branch: master
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+dependency_overrides:
+  flutter_background_service_platform_interface:
+    path: ../flutter_background_service_platform_interface
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -189,6 +189,13 @@ class AndroidServiceInstance extends ServiceInstance {
     await _channel.invokeMethod("stopService");
   }
 
+  
+  @override
+  Future<double?> beginBackgroundTask() => Future.value(null);
+  
+  @override
+  Future<void> endBackgroundTask() => Future.value();
+
   @override
   Stream<Map<String, dynamic>?> on(String method) {
     return _controller.stream.transform(

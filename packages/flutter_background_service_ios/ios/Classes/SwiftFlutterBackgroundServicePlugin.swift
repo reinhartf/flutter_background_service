@@ -2,6 +2,9 @@ import Flutter
 import UIKit
 import AVKit
 import BackgroundTasks
+import os
+
+let log = OSLog(subsystem: "dev.flutter.background.service", category: "background_service")
 
 public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDelegate, FlutterPlugin  {
     public static var taskIdentifier = "dev.flutter.background.refresh"
@@ -322,6 +325,8 @@ private class FlutterForegroundWorker {
     var channel: FlutterMethodChannel?
     var mainChannel: FlutterMethodChannel
     var onTerminated: VoidInputVoidReturnBlock?
+
+    var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
     
     init(mainChannel: FlutterMethodChannel){
         self.mainChannel = mainChannel
@@ -362,6 +367,23 @@ private class FlutterForegroundWorker {
             result(true)
             self.onTerminated?()
             return;
+        }
+
+        if (call.method == "beginBackgroundTask") {
+            self.backgroundTaskID = UIApplication.shared.beginBackgroundTask (withName: "Perform background BLE data sync") {
+                UIApplication.shared.endBackgroundTask(self.backgroundTaskID)
+                self.backgroundTaskID = .invalid
+            }
+            let remainingTime = UIApplication.shared.backgroundTimeRemaining
+            result(remainingTime)
+            return
+        }
+
+        if (call.method == "endBackgroundTask") {
+            UIApplication.shared.endBackgroundTask(self.backgroundTaskID)
+            self.backgroundTaskID = .invalid
+            result(nil)
+            return
         }
     }
 }
