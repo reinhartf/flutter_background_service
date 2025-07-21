@@ -22,17 +22,17 @@ dependencies:
     git:
       url: https://github.com/reinhartf/flutter_background_service
       path: packages/flutter_background_service_platform_interface
-      branch: master
+      branch: disable-bg-app-refresh
   flutter_background_service_android:
     git:
       url: https://github.com/reinhartf/flutter_background_service
       path: packages/flutter_background_service_android
-      branch: master
+      branch: disable-bg-app-refresh
   flutter_background_service_ios:
     git:
       url: https://github.com/reinhartf/flutter_background_service
       path: packages/flutter_background_service_ios
-      branch: master
+      branch: disable-bg-app-refresh
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -38,61 +38,61 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
         
     public override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [AnyHashable : Any] = [:]) -> Bool {
         UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
-        if #available(iOS 13.0, *) {
-            SwiftFlutterBackgroundServicePlugin.registerTaskIdentifier(taskIdentifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
-        }
+        // if #available(iOS 13.0, *) {
+        //     SwiftFlutterBackgroundServicePlugin.registerTaskIdentifier(taskIdentifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
+        // }
         
         return true
     }
     
     public func applicationDidEnterBackground(_ application: UIApplication) {
-        if #available(iOS 13.0, *){
-            SwiftFlutterBackgroundServicePlugin.scheduleAppRefresh()
-        }
+        // if #available(iOS 13.0, *){
+        //     SwiftFlutterBackgroundServicePlugin.scheduleAppRefresh()
+        // }
     }
     
-    @available(iOS 13.0, *)
-    public static func registerTaskIdentifier(taskIdentifier: String) {
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: nil) { task in
-            self.handleAppRefresh(task: task as! BGAppRefreshTask)
-        }
-    }
+    // @available(iOS 13.0, *)
+    // public static func registerTaskIdentifier(taskIdentifier: String) {
+    //     BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: nil) { task in
+    //         self.handleAppRefresh(task: task as! BGAppRefreshTask)
+    //     }
+    // }
     
-    @available(iOS 13.0, *)
-    private static func scheduleAppRefresh() {
-        let request = BGAppRefreshTaskRequest(identifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
-       request.earliestBeginDate = Date(timeIntervalSinceNow: 3 * 60 * 60)
+    // @available(iOS 13.0, *)
+    // private static func scheduleAppRefresh() {
+    //     let request = BGAppRefreshTaskRequest(identifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
+    //    request.earliestBeginDate = Date(timeIntervalSinceNow: 3 * 60 * 60)
             
-       do {
-           // cancel old schedule
-           BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
+    //    do {
+    //        // cancel old schedule
+    //        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
            
-          try BGTaskScheduler.shared.submit(request)
-       } catch {
-          print("Could not schedule app refresh: \(error)")
-       }
-    }
+    //       try BGTaskScheduler.shared.submit(request)
+    //    } catch {
+    //       print("Could not schedule app refresh: \(error)")
+    //    }
+    // }
     
-    @available(iOS 13.0, *)
-    private static func handleAppRefresh(task: BGAppRefreshTask) {
-        let defaults = UserDefaults.standard
-        let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
-        if (callbackHandle == nil){
-            print("Background handler is disabled")
-            return
-        }
+    // @available(iOS 13.0, *)
+    // private static func handleAppRefresh(task: BGAppRefreshTask) {
+    //     let defaults = UserDefaults.standard
+    //     let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
+    //     if (callbackHandle == nil){
+    //         print("Background handler is disabled")
+    //         return
+    //     }
         
-        let operationQueue = OperationQueue()
-        let operation = FlutterBackgroundRefreshAppOperation(
-            task: task
-        )
+    //     let operationQueue = OperationQueue()
+    //     let operation = FlutterBackgroundRefreshAppOperation(
+    //         task: task
+    //     )
 
-        operation.completionBlock = {
-            scheduleAppRefresh()
-        }
+    //     operation.completionBlock = {
+    //         scheduleAppRefresh()
+    //     }
 
-        operationQueue.addOperation(operation)
-    }
+    //     operationQueue.addOperation(operation)
+    // }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(
