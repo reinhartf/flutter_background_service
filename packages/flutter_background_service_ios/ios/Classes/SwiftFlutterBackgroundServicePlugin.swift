@@ -17,7 +17,7 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
     var mainChannel: FlutterMethodChannel? = nil
     
     public override func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) -> Bool {
-        
+        os_log("[com.lifeq.companion][background_service] performFetchWithCompletionHandler")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
         if (callbackHandle == nil){
@@ -37,6 +37,7 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
     }
         
     public override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [AnyHashable : Any] = [:]) -> Bool {
+        os_log("[com.lifeq.companion][background_service] didFinishLaunchingWithOptions")
         UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
         if #available(iOS 13.0, *) {
             SwiftFlutterBackgroundServicePlugin.registerTaskIdentifier(taskIdentifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
@@ -75,6 +76,7 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
     
     @available(iOS 13.0, *)
     private static func handleAppRefresh(task: BGAppRefreshTask) {
+        os_log("[com.lifeq.companion][background_service] handleAppRefresh")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
         if (callbackHandle == nil){
@@ -180,6 +182,7 @@ class FlutterBackgroundRefreshAppOperation: Operation {
     fileprivate var worker: FlutterBackgroundRefreshAppWorker?
     
     init(task: BGAppRefreshTask) {
+        os_log("[com.lifeq.companion][background_service] FlutterBackgroundRefreshAppOperation init")
         self.task = task
     }
     
@@ -216,20 +219,24 @@ private class FlutterBackgroundRefreshAppWorker {
     var channel: FlutterMethodChannel?
     
     init(task: BGAppRefreshTask){
+        os_log("[com.lifeq.companion][background_service] BackgroundRefreshAppWorker init")
         self.task = task
     }
     
     public func run() {
+        os_log("[com.lifeq.companion][background_service] BackgroundRefreshAppWorker run")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
         if (callbackHandle == nil){
             print("No callback handle for background")
+            os_log("[com.lifeq.companion][background_service] BackgroundRefreshAppWorker no callback handle for background")
             return
         }
         
         let isRunning = engine.run(withEntrypoint: entrypointName, libraryURI: uri, initialRoute: nil, entrypointArgs: [String(callbackHandle!)])
         
         if (isRunning){
+            os_log("[com.lifeq.companion][background_service] BackgroundRefreshAppWorker engine running")
             FlutterBackgroundServicePlugin.register(engine)
             
             let binaryMessenger = engine.binaryMessenger
@@ -272,20 +279,24 @@ private class FlutterBackgroundFetchWorker {
     var channel: FlutterMethodChannel?
     
     init(task: @escaping (UIBackgroundFetchResult) -> Void){
+        os_log("[com.lifeq.companion][background_service] BackgroundFetchWorkder init")
         self.task = task
     }
     
     public func run() {
+        os_log("[background_service] BackgroundFetchWorkder run")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
         if (callbackHandle == nil){
             print("No callback handle for background")
+            os_log("[com.lifeq.companion][background_service] BackgroundFetchWorkder no callback handle for background")
             return
         }
         
         let isRunning = engine.run(withEntrypoint: entrypointName, libraryURI: uri, initialRoute: nil, entrypointArgs: [String(callbackHandle!)])
         
         if (isRunning){
+            os_log("[com.lifeq.companion][background_service] BackgroundFetchWorkder flutter engine running")
             FlutterBackgroundServicePlugin.register(engine)
             
             let binaryMessenger = engine.binaryMessenger
@@ -329,10 +340,12 @@ private class FlutterForegroundWorker {
     var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
     
     init(mainChannel: FlutterMethodChannel){
+        os_log("[com.lifeq.companion][background_service] FlutterForegrounWorker init")
         self.mainChannel = mainChannel
     }
     
     public func run() {
+        os_log("[com.lifeq.companion][background_service] FlutterForegrounWorker run")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "foreground_callback_handle") as? Int64
         if (callbackHandle == nil){
@@ -343,6 +356,7 @@ private class FlutterForegroundWorker {
         let isRunning = engine.run(withEntrypoint: entrypointName, libraryURI: uri, initialRoute: nil, entrypointArgs: [String(callbackHandle!)])
         
         if (isRunning){
+            os_log("[com.lifeq.companion][background_service] FlutterForegrounWorker isRunning")
             FlutterBackgroundServicePlugin.register(engine)
             
             let binaryMessenger = engine.binaryMessenger
@@ -370,16 +384,19 @@ private class FlutterForegroundWorker {
         }
 
         if (call.method == "beginBackgroundTask") {
+            os_log("[com.lifeq.companion][background_service] beginBackgroundTask")
             self.backgroundTaskID = UIApplication.shared.beginBackgroundTask (withName: "Perform background BLE data sync") {
                 UIApplication.shared.endBackgroundTask(self.backgroundTaskID)
                 self.backgroundTaskID = .invalid
             }
             let remainingTime = UIApplication.shared.backgroundTimeRemaining
+            os_log("[com.lifeq.companion][background_service] remainingTime %f", remainingTime)
             result(remainingTime)
             return
         }
 
         if (call.method == "endBackgroundTask") {
+            os_log("[com.lifeq.companion][background_service] endBackgroundTask")
             UIApplication.shared.endBackgroundTask(self.backgroundTaskID)
             self.backgroundTaskID = .invalid
             result(nil)

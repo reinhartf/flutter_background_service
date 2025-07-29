@@ -19,7 +19,7 @@ dependencies:
     git:
       url: https://github.com/reinhartf/flutter_background_service
       path: packages/flutter_background_service_platform_interface
-      branch: master
+      branch: etienne2
 
 dev_dependencies:
   flutter_test:
