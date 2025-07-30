@@ -2,9 +2,6 @@ import Flutter
 import UIKit
 import AVKit
 import BackgroundTasks
-import os
-
-let log = OSLog(subsystem: "dev.flutter.background.service", category: "background_service")
 
 public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDelegate, FlutterPlugin  {
     public static var taskIdentifier = "dev.flutter.background.refresh"
@@ -17,7 +14,7 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
     var mainChannel: FlutterMethodChannel? = nil
     
     public override func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) -> Bool {
-        os_log("[com.lifeq.companion][background_service] performFetchWithCompletionHandler")
+        LogToFlutter.shared.log("[background_service] performFetchWithCompletionHandler")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
         if (callbackHandle == nil){
@@ -37,7 +34,7 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
     }
         
     public override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [AnyHashable : Any] = [:]) -> Bool {
-        os_log("[com.lifeq.companion][background_service] didFinishLaunchingWithOptions")
+        LogToFlutter.shared.log("[background_service] didFinishLaunchingWithOptions")
         UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
         if #available(iOS 13.0, *) {
             SwiftFlutterBackgroundServicePlugin.registerTaskIdentifier(taskIdentifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
@@ -76,7 +73,7 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
     
     @available(iOS 13.0, *)
     private static func handleAppRefresh(task: BGAppRefreshTask) {
-        os_log("[com.lifeq.companion][background_service] handleAppRefresh")
+        LogToFlutter.shared.log("[background_service] handleAppRefresh")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
         if (callbackHandle == nil){
@@ -102,6 +99,9 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
             binaryMessenger: registrar.messenger(),
             codec: FlutterJSONMethodCodec())
         
+        let channel2 = FlutterEventChannel(name: "com.lifeq.companion/flutter_background_service_to_flutter_logs", binaryMessenger: registrar.messenger())    
+        channel2.setStreamHandler(LogToFlutterStreamHandler())
+
         let instance = SwiftFlutterBackgroundServicePlugin()
         instance.mainChannel = channel
         
@@ -182,7 +182,6 @@ class FlutterBackgroundRefreshAppOperation: Operation {
     fileprivate var worker: FlutterBackgroundRefreshAppWorker?
     
     init(task: BGAppRefreshTask) {
-        os_log("[com.lifeq.companion][background_service] FlutterBackgroundRefreshAppOperation init")
         self.task = task
     }
     
@@ -219,29 +218,32 @@ private class FlutterBackgroundRefreshAppWorker {
     var channel: FlutterMethodChannel?
     
     init(task: BGAppRefreshTask){
-        os_log("[com.lifeq.companion][background_service] BackgroundRefreshAppWorker init")
+        LogToFlutter2.shared.log("[background_service] BackgroundRefreshAppWorker init")
         self.task = task
     }
     
     public func run() {
-        os_log("[com.lifeq.companion][background_service] BackgroundRefreshAppWorker run")
+        LogToFlutter2.shared.log("[background_service] BackgroundRefreshAppWorker run")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
         if (callbackHandle == nil){
             print("No callback handle for background")
-            os_log("[com.lifeq.companion][background_service] BackgroundRefreshAppWorker no callback handle for background")
+            LogToFlutter2.shared.log("[background_service] BackgroundRefreshAppWorker no callback handle for background")
             return
         }
         
         let isRunning = engine.run(withEntrypoint: entrypointName, libraryURI: uri, initialRoute: nil, entrypointArgs: [String(callbackHandle!)])
         
         if (isRunning){
-            os_log("[com.lifeq.companion][background_service] BackgroundRefreshAppWorker engine running")
+            LogToFlutter2.shared.log("[background_service] BackgroundRefreshAppWorker engine running")
             FlutterBackgroundServicePlugin.register(engine)
             
             let binaryMessenger = engine.binaryMessenger
             channel = FlutterMethodChannel(name: "id.flutter/background_service_ios_bg", binaryMessenger: binaryMessenger, codec: FlutterJSONMethodCodec())
             channel?.setMethodCallHandler(handleMethodCall)
+
+            let logChannel = FlutterEventChannel(name: "com.lifeq.companion/app_fresh_task_to_flutter_logs", binaryMessenger: binaryMessenger)
+            logChannel.setStreamHandler(LogToFlutterStreamHandler2())
         }
     }
     
@@ -279,24 +281,20 @@ private class FlutterBackgroundFetchWorker {
     var channel: FlutterMethodChannel?
     
     init(task: @escaping (UIBackgroundFetchResult) -> Void){
-        os_log("[com.lifeq.companion][background_service] BackgroundFetchWorkder init")
         self.task = task
     }
     
     public func run() {
-        os_log("[background_service] BackgroundFetchWorkder run")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "background_callback_handle") as? Int64
         if (callbackHandle == nil){
             print("No callback handle for background")
-            os_log("[com.lifeq.companion][background_service] BackgroundFetchWorkder no callback handle for background")
             return
         }
         
         let isRunning = engine.run(withEntrypoint: entrypointName, libraryURI: uri, initialRoute: nil, entrypointArgs: [String(callbackHandle!)])
         
         if (isRunning){
-            os_log("[com.lifeq.companion][background_service] BackgroundFetchWorkder flutter engine running")
             FlutterBackgroundServicePlugin.register(engine)
             
             let binaryMessenger = engine.binaryMessenger
@@ -340,12 +338,12 @@ private class FlutterForegroundWorker {
     var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
     
     init(mainChannel: FlutterMethodChannel){
-        os_log("[com.lifeq.companion][background_service] FlutterForegrounWorker init")
+        LogToFlutter3.shared.log("[background_service] FlutterForegrounWorker init")
         self.mainChannel = mainChannel
     }
     
     public func run() {
-        os_log("[com.lifeq.companion][background_service] FlutterForegrounWorker run")
+        LogToFlutter3.shared.log("[background_service] FlutterForegrounWorker run")
         let defaults = UserDefaults.standard
         let callbackHandle = defaults.object(forKey: "foreground_callback_handle") as? Int64
         if (callbackHandle == nil){
@@ -356,12 +354,15 @@ private class FlutterForegroundWorker {
         let isRunning = engine.run(withEntrypoint: entrypointName, libraryURI: uri, initialRoute: nil, entrypointArgs: [String(callbackHandle!)])
         
         if (isRunning){
-            os_log("[com.lifeq.companion][background_service] FlutterForegrounWorker isRunning")
+            LogToFlutter3.shared.log("[background_service] FlutterForegrounWorker isRunning")
             FlutterBackgroundServicePlugin.register(engine)
             
             let binaryMessenger = engine.binaryMessenger
             channel = FlutterMethodChannel(name: "id.flutter/background_service_ios_bg", binaryMessenger: binaryMessenger, codec: FlutterJSONMethodCodec())
             channel?.setMethodCallHandler(handleMethodCall)
+
+            let logChannel = FlutterEventChannel(name: "com.lifeq.companion/foreground_worker_to_flutter_logs", binaryMessenger: binaryMessenger)
+            logChannel.setStreamHandler(LogToFlutterStreamHandler3())
         }
     }
     
@@ -384,23 +385,157 @@ private class FlutterForegroundWorker {
         }
 
         if (call.method == "beginBackgroundTask") {
-            os_log("[com.lifeq.companion][background_service] beginBackgroundTask")
+            LogToFlutter3.shared.log("[background_service] beginBackgroundTask")
             self.backgroundTaskID = UIApplication.shared.beginBackgroundTask (withName: "Perform background BLE data sync") {
                 UIApplication.shared.endBackgroundTask(self.backgroundTaskID)
                 self.backgroundTaskID = .invalid
             }
             let remainingTime = UIApplication.shared.backgroundTimeRemaining
-            os_log("[com.lifeq.companion][background_service] remainingTime %f", remainingTime)
             result(remainingTime)
             return
         }
 
         if (call.method == "endBackgroundTask") {
-            os_log("[com.lifeq.companion][background_service] endBackgroundTask")
+            LogToFlutter3.shared.log("[background_service] endBackgroundTask")
             UIApplication.shared.endBackgroundTask(self.backgroundTaskID)
             self.backgroundTaskID = .invalid
             result(nil)
             return
         }
+    }
+}
+
+class LogToFlutter {
+    static let shared = LogToFlutter()
+
+    private var sink: FlutterEventSink?
+    private var buffer: [String] = []
+
+    private let dateFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        return df
+    }()
+
+    func setSink(_ sink: FlutterEventSink?) {
+        self.sink = sink
+
+        // Flush any buffered messages
+        for message in buffer {
+            sink?(message)
+        }
+        buffer.removeAll()
+    }
+
+    func log(_ message: String) {
+        if let sink = sink {
+            sink(message)
+        } else {
+            let timestamp = dateFormatter.string(from: Date())
+            let timestampedMessage = "[\(timestamp)] \(message)"
+            buffer.append(timestampedMessage) // Store for later
+        }
+    }
+}
+
+class LogToFlutterStreamHandler: NSObject, FlutterStreamHandler {
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        LogToFlutter.shared.setSink(events)
+        return nil
+    }
+
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        LogToFlutter.shared.setSink(nil)
+        return nil
+    }
+}
+
+class LogToFlutter2 {
+    static let shared = LogToFlutter2()
+
+    private var sink: FlutterEventSink?
+    private var buffer: [String] = []
+
+    private let dateFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        return df
+    }()
+
+    func setSink(_ sink: FlutterEventSink?) {
+        self.sink = sink
+
+        // Flush any buffered messages
+        for message in buffer {
+            sink?(message)
+        }
+        buffer.removeAll()
+    }
+
+    func log(_ message: String) {
+        if let sink = sink {
+            sink(message)
+        } else {
+            let timestamp = dateFormatter.string(from: Date())
+            let timestampedMessage = "[\(timestamp)] \(message)"
+            buffer.append(timestampedMessage) // Store for later
+        }
+    }
+}
+
+class LogToFlutterStreamHandler2: NSObject, FlutterStreamHandler {
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        LogToFlutter2.shared.setSink(events)
+        return nil
+    }
+
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        LogToFlutter2.shared.setSink(nil)
+        return nil
+    }
+}
+
+class LogToFlutter3 {
+    static let shared = LogToFlutter3()
+
+    private var sink: FlutterEventSink?
+    private var buffer: [String] = []
+
+    private let dateFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        return df
+    }()
+
+    func setSink(_ sink: FlutterEventSink?) {
+        self.sink = sink
+
+        // Flush any buffered messages
+        for message in buffer {
+            sink?(message)
+        }
+        buffer.removeAll()
+    }
+
+    func log(_ message: String) {
+        if let sink = sink {
+            sink(message)
+        } else {
+            let timestamp = dateFormatter.string(from: Date())
+            let timestampedMessage = "[\(timestamp)] \(message)"
+            buffer.append(timestampedMessage) // Store for later
+        }
+    }
+}
+
+class LogToFlutterStreamHandler3: NSObject, FlutterStreamHandler {
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        LogToFlutter3.shared.setSink(events)
+        return nil
+    }
+
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        LogToFlutter3.shared.setSink(nil)
+        return nil
     }
 }
