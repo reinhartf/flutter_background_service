@@ -2,9 +2,6 @@ import Flutter
 import UIKit
 import AVKit
 import BackgroundTasks
-import os
-
-let log = OSLog(subsystem: "dev.flutter.background.service", category: "background_service")
 
 public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDelegate, FlutterPlugin  {
     public static var taskIdentifier = "dev.flutter.background.refresh"
@@ -61,7 +58,7 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
     @available(iOS 13.0, *)
     private static func scheduleAppRefresh() {
         let request = BGAppRefreshTaskRequest(identifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
-       request.earliestBeginDate = Date(timeIntervalSinceNow: 3 * 60 * 60)
+       request.earliestBeginDate = Date(timeIntervalSinceNow: 1 * 60 * 60)
             
        do {
            // cancel old schedule
@@ -259,6 +256,12 @@ private class FlutterBackgroundRefreshAppWorker {
             self.onCompleted?()
             print("Flutter Background Service Completed")
         }
+
+        if (call.method == "sendData") {
+            BackgroundForegroundBridge.shared.sendToForeground(method: "onReceiveData", arguments:  call.arguments)
+            result(true);
+            return;
+        }
     }
 }
 
@@ -317,6 +320,21 @@ private class FlutterBackgroundFetchWorker {
     }
 }
 
+private class BackgroundForegroundBridge {
+    static let shared = BackgroundForegroundBridge()
+    
+    private var foregroundChannel: FlutterMethodChannel?
+    
+    func setForegroundChannel(_ channel: FlutterMethodChannel) {
+        self.foregroundChannel = channel
+    }
+    
+   
+    func sendToForeground(method: String, arguments: Any?) {
+        foregroundChannel?.invokeMethod(method, arguments: arguments)
+    }
+}
+
 private class FlutterForegroundWorker {
     let entrypointName = "foregroundEntrypoint"
     let uri = "package:flutter_background_service_ios/flutter_background_service_ios.dart"
@@ -347,6 +365,7 @@ private class FlutterForegroundWorker {
             
             let binaryMessenger = engine.binaryMessenger
             channel = FlutterMethodChannel(name: "id.flutter/background_service_ios_bg", binaryMessenger: binaryMessenger, codec: FlutterJSONMethodCodec())
+            BackgroundForegroundBridge.shared.setForegroundChannel(channel!)
             channel?.setMethodCallHandler(handleMethodCall)
         }
     }
