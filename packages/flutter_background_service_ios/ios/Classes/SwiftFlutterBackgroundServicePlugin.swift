@@ -37,6 +37,18 @@ public class SwiftFlutterBackgroundServicePlugin: FlutterPluginAppLifeCycleDeleg
         UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
         if #available(iOS 13.0, *) {
             SwiftFlutterBackgroundServicePlugin.registerTaskIdentifier(taskIdentifier: SwiftFlutterBackgroundServicePlugin.taskIdentifier)
+
+            if let rawOptions = launchOptions as? [AnyHashable : Any] {
+                let options = Dictionary(uniqueKeysWithValues: rawOptions.compactMap { key, value in
+                    (key as? UIApplication.LaunchOptionsKey).map { ($0, value) }
+                })
+
+                // If launched in the bacground by location (iBeacon), schedule the BGAppRefreshTask cause 
+                // the app doesn't transition from Foreground to Background to schedule it.
+                if options[.location] != nil && application.applicationState == .background {
+                    SwiftFlutterBackgroundServicePlugin.scheduleAppRefresh()
+                }
+            }
         }
         
         return true
